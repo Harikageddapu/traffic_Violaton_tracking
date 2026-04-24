@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Traffic Management System</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+}
+
+/* LOGIN BACKGROUND ONLY */
+.login-bg {
+    background: url('https://www.ptolemus.com/wp-content/uploads/traffic-highway.jpeg') no-repeat center center/cover;
+    height: 100vh;
+}
+
+/* LOGIN BOX */
+#loginBox {
+    width: 300px;
+    margin: 150px auto;
+    padding: 25px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+}
+
+/* INPUT */
+input {
+    width: 90%;
+    padding: 8px;
+    margin: 6px;
+    border-radius: 5px;
+    border: none;
+}
+
+/* BUTTON */
+button {
+    padding: 8px;
+    margin: 5px;
+    border: none;
+    background: green;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+/* DASHBOARD */
+#dashboard {
+    display: none;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 180px;
+    height: 100vh;
+    background: #2f3542;
+    color: white;
+    position: fixed;
+    font-size: 13px;
+}
+
+.sidebar h3 {
+    text-align: center;
+}
+
+.sidebar button {
+    width: 85%;
+    margin: 8px;
+    background: #57606f;
+}
+
+/* MAIN */
+.main {
+    margin-left: 190px;
+    padding: 20px;
+}
+
+/* TABLE */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background: #ff5722;
+    color: white;
+}
+</style>
+</head>
+
+<body class="login-bg">
+
+<!-- LOGIN -->
+<div id="loginBox">
+<h2>Admin Login</h2>
+<input id="username" placeholder="Username"><br>
+<input id="password" type="password" placeholder="Password"><br>
+<button onclick="login()">Login</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<h3>TMS</h3>
+
+<button onclick="showHome()">Home</button>
+<button onclick="loadData('drivers')">Drivers</button>
+<button onclick="showAddDriver()">Add Driver</button>
+<button onclick="loadData('violations')">Violations</button>
+<button onclick="loadData('payments')">Payments</button>
+<button onclick="logout()">Logout</button>
+
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- HOME -->
+<div id="homePage">
+<h2>Welcome 🚦</h2>
+<p>Traffic Violation Tracking & Fine Management System</p>
+</div>
+
+<!-- DRIVER TABLE -->
+<div id="driverPage" style="display:none;">
+<h3>Driver Records</h3>
+<input id="search" placeholder="Search..." onkeyup="searchTable()">
+<table id="table"></table>
+</div>
+
+<!-- ADD DRIVER -->
+<div id="addPage" style="display:none;">
+<h3 style="text-align:center;">Add Driver</h3>
+
+<div style="width:300px;margin:auto;text-align:center;">
+<input id="d_id" placeholder="ID">
+<input id="d_name" placeholder="Name">
+<input id="d_license" placeholder="License">
+<input id="d_phone" placeholder="Phone">
+<input id="d_address" placeholder="Address">
+<input id="d_dob" placeholder="DOB">
+<button onclick="addDriver()">Add</button>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<p style="text-align:center;">© 2026 Traffic Violation System</p>
+
+<script>
+
+// LOGIN
+function login() {
+    if(username.value === "" || password.value === "") {
+        alert("Enter details ❌");
+        return;
+    }
+
+    document.body.classList.remove("login-bg");
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+
+    showHome();
+}
+
+// PAGE CONTROL
+function hideAll() {
+    document.getElementById("homePage").style.display = "none";
+    document.getElementById("driverPage").style.display = "none";
+    document.getElementById("addPage").style.display = "none";
+}
+
+function showHome() {
+    hideAll();
+    document.getElementById("homePage").style.display = "block";
+}
+
+function showAddDriver() {
+    hideAll();
+    document.getElementById("addPage").style.display = "block";
+}
+
+// LOAD DATA
+function loadData(type) {
+    hideAll();
+    document.getElementById("driverPage").style.display = "block";
+
+    fetch(`http://localhost:5000/${type}`)
+    .then(res => res.json())
+    .then(data => {
+
+        let table = "";
+        let keys = Object.keys(data[0]);
+
+        table += "<tr>";
+        keys.forEach(k => table += `<th>${k}</th>`);
+        table += "<th>Actions</th></tr>";
+
+        data.forEach(row => {
+            table += "<tr>";
+
+            keys.forEach(k => {
+                if (k === "Driver_ID") {
+                    table += `<td onclick="showDriverDetails(${row[k]})"
+                        style="cursor:pointer;color:blue">${row[k]}</td>`;
+                } else {
+                    table += `<td>${row[k]}</td>`;
+                }
+            });
+
+            table += `<td>
+                <button onclick="editDriver(${row.Driver_ID})">Edit</button>
+                <button onclick="deleteDriver(${row.Driver_ID})">Delete</button>
+            </td>`;
+
+            table += "</tr>";
+        });
+
+        document.getElementById("table").innerHTML = table;
+    });
+}
+
+// ADD DRIVER
+function addDriver() {
+    if(!d_id.value || !d_name.value){
+        alert("Fill required fields ❌");
+        return;
+    }
+
+    fetch("http://localhost:5000/addDriver", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            Driver_ID: d_id.value,
+            Name: d_name.value,
+            License_Number: d_license.value,
+            Phone_Number: d_phone.value,
+            Address: d_address.value,
+            DOB: d_dob.value || null
+        })
+    })
+    .then(res => res.text())
+    .then(msg => {
+        alert(msg);
+        showHome();
+    });
+}
+
+// DELETE DRIVER
+function deleteDriver(id) {
+    fetch(`http://localhost:5000/deleteDriver/${id}`, {
+        method: "DELETE"
+    })
+    .then(res => res.text())
+    .then(msg => {
+        alert(msg);
+        loadData('drivers');
+    });
+}
+
+// EDIT DRIVER
+function editDriver(id) {
+    let newName = prompt("Enter new name:");
+
+    fetch(`http://localhost:5000/updateDriver/${id}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ Name: newName })
+    })
+    .then(res => res.text())
+    .then(msg => {
+        alert(msg);
+        loadData('drivers');
+    });
+}
+
+// DRIVER DETAILS
+function showDriverDetails(id) {
+    fetch(`http://localhost:5000/driverDetails/${id}`)
+    .then(res => res.json())
+    .then(data => {
+
+        let output = "Driver Details:\n\n";
+
+        data.forEach(d => {
+            output += `Name: ${d.Name}
+Vehicle: ${d.Vehicle_Number}
+Violation: ${d.Violation_Type}
+Fine: ${d.Fine_Amount}
+Payment: ${d.Payment_Status}\n\n`;
+        });
+
+        alert(output);
+    });
+}
+
+// SEARCH
+function searchTable() {
+    let input = document.getElementById("search").value.toLowerCase();
+    let rows = document.querySelectorAll("#table tr");
+
+    rows.forEach((row, index) => {
+        if (index === 0) return;
+
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+    });
+}
+
+// LOGOUT
+function logout() {
+    location.reload();
+}
+
+</script>
+
+</body>
+</html>
